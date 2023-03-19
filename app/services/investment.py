@@ -35,6 +35,9 @@ async def execute_investment_process(
     object_in: Union[CharityProject, Donation],
     session: AsyncSession
 ):
+    if object_in is None:
+        return object_in
+    
     db_model = (
         CharityProject if isinstance(object_in, Donation) else Donation
     )
@@ -43,19 +46,20 @@ async def execute_investment_process(
 
     if not_invested_objects:
         for not_invested_obj in not_invested_objects:
-            need_to_invest = not_invested_obj.full_amount - not_invested_obj.invested_amount
-            to_invest = (
-                need_to_invest if need_to_invest < available_amount else available_amount
-            )
-            not_invested_obj.invested_amount += to_invest
-            object_in.invested_amount += to_invest
-            available_amount -= to_invest
+            if not not_invested_obj.fully_invested:
+                need_to_invest = not_invested_obj.full_amount - not_invested_obj.invested_amount
+                to_invest = (
+                    need_to_invest if need_to_invest < available_amount else available_amount
+                )
+                not_invested_obj.invested_amount += to_invest
+                object_in.invested_amount += to_invest
+                available_amount -= to_invest
 
-            if not_invested_obj.full_amount == not_invested_obj.invested_amount:
-                await close_invested_object(not_invested_obj)
+                if not_invested_obj.full_amount == not_invested_obj.invested_amount:
+                    await close_invested_object(not_invested_obj)
 
-            if not available_amount:
-                await close_invested_object(object_in)
-                break
+                if not available_amount:
+                    await close_invested_object(object_in)
+                    break
         await session.commit()
     return object_in
