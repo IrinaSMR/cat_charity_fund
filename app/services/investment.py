@@ -37,7 +37,7 @@ async def execute_investment_process(
 ):
     if object_in is None:
         return object_in
-    
+
     db_model = (
         CharityProject if isinstance(object_in, Donation) else Donation
     )
